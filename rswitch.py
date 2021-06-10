@@ -163,7 +163,7 @@ def create_config_file(cluster, url, user, token, context="default", path=None):
     call(
         ["kubectl", "config"]
         + (["--kubeconfig", path] if path else [])
-        + ["set-cluster", cluster, "--server", url],
+        + ["set-cluster", "rswitch-" + cluster, "--server", url],
         stdout=DEVNULL,
         stderr=STDOUT,
     )
@@ -171,7 +171,7 @@ def create_config_file(cluster, url, user, token, context="default", path=None):
     call(
         ["kubectl", "config"]
         + (["--kubeconfig", path] if path else [])
-        + ["set-credentials", user, "--token", token],
+        + ["set-credentials", "rswitch-" + user, "--token", token],
         stdout=DEVNULL,
         stderr=STDOUT,
     )
@@ -181,13 +181,13 @@ def create_config_file(cluster, url, user, token, context="default", path=None):
         + (["--kubeconfig", path] if path else [])
         + [
             "set-context",
-            context,
+            "rswitch-" + context,
             "--cluster",
-            cluster,
+            "rswitch-" + cluster,
             "--namespace",
             "default",
             "--user",
-            user,
+            "rswitch-" + user,
         ],
         stdout=DEVNULL,
         stderr=STDOUT,
@@ -198,7 +198,7 @@ def create_config_file(cluster, url, user, token, context="default", path=None):
     call(
         ["kubectl", "config"]
         + (["--kubeconfig", path] if path else [])
-        + ["use-context", context],
+        + ["use-context", "rswitch-" + context],
         stdout=DEVNULL,
         stderr=STDOUT,
     )
