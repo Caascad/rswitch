@@ -43,12 +43,13 @@ def setup():
 
 
 def log(*args, **kwargs):
-    output_fd = sys.stderr if os.getenv("RSWITCH_EXPORT") == "1" else sys.stdout
-    print("\x1B[32m--- [INFO]", *args, "\x1B[0m", file=output_fd, **kwargs)
+    output_fd = sys.stderr if os.getenv("RSWITCH_EXPORT") == "1" or os.getenv("RSWITCH_SILENCE") == "1" else sys.stdout
+    if not os.getenv("RSWITCH_SILENCE") or os.getenv("RSWITCH_VERBOSE") == "1":
+        print("\x1B[32m--- [INFO]", *args, "\x1B[0m", file=output_fd, **kwargs)
 
 
 def debug(*args, **kwargs):
-    output_fd = sys.stderr if os.getenv("RSWITCH_EXPORT") == "1" else sys.stdout
+    output_fd = sys.stderr if os.getenv("RSWITCH_EXPORT") == "1" or os.getenv("RSWITCH_SILENCE") == "1" else sys.stdout
     if os.getenv("RSWITCH_VERBOSE") == "1":
         print("\x1B[34m--- [DEBUG]", *args, "\x1B[0m", file=output_fd, **kwargs)
 
@@ -77,7 +78,7 @@ def get_session_token(zone_name):
     return token
 
 
-def generate_kubeconfig(zone, cloud_zone):
+def generate_kubeconfig(zone, cloud_zone, output):
     token = get_saved_token(cloud_zone)
 
     if token:
@@ -109,22 +110,30 @@ def generate_kubeconfig(zone, cloud_zone):
     cluster_id = get_cluster_id(
         cloud_zone, token, "local" if cloud_zone == zone else "caascad-" + zone
     )
-    log("Creating Kubernetes configuration file")
-    create_config_file(
-        url=f"https://rancher.{cloud_zone}.caascad.com/k8s/clusters/{cluster_id}",
-        cluster=zone,
-        user=cloud_zone,
-        token=token,
-        context=zone,
-    )
-    create_config_file(
-        url=f"https://rancher.{cloud_zone}.caascad.com/k8s/clusters/{cluster_id}",
-        cluster=zone,
-        user=cloud_zone,
-        token=token,
-        context=zone,
-        path=f"{KUBECONFIG_DIR}/config",
-    )
+    if output:
+        stdout = {
+            "apiVersion": "client.authentication.k8s.io/v1alpha1",
+            "kind": "ExecCredential",
+            "status": {
+                "token": token
+            }
+        }
+        print(json.dumps(stdout))
+    else:
+        log("Creating Kubernetes configuration file")
+        create_config_file(
+            url=f"https://rancher.{cloud_zone}.caascad.com/k8s/clusters/{cluster_id}",
+            cluster=zone,
+            user=cloud_zone,
+            context=zone,
+        )
+        create_config_file(
+            url=f"https://rancher.{cloud_zone}.caascad.com/k8s/clusters/{cluster_id}",
+            cluster=zone,
+            user=cloud_zone,
+            context=zone,
+            path=f"{KUBECONFIG_DIR}/config",
+        )
 
 
 def save_token(zone, token, expires_at):
@@ -158,7 +167,7 @@ def get_saved_token(zone):
             return None
 
 
-def create_config_file(cluster, url, user, token, context="default", path=None):
+def create_config_file(cluster, url, user, context="default", path=None):
     debug(f'Adding cluster in configuration file {path if path else "~/.kube/config"}')
     call(
         ["kubectl", "config"]
@@ -171,7 +180,20 @@ def create_config_file(cluster, url, user, token, context="default", path=None):
     call(
         ["kubectl", "config"]
         + (["--kubeconfig", path] if path else [])
-        + ["set-credentials", "rswitch-" + user, "--token", token],
+        + [
+            "set-credentials",
+            "rswitch-" + user,
+            "--exec-api-version",
+            "client.authentication.k8s.io/v1alpha1",
+            "--exec-command",
+            "rswitch",
+            "--exec-arg",
+            "login",
+            "--exec-arg",
+            "-c",
+            "--exec-arg",
+            cluster
+        ],
         stdout=DEVNULL,
         stderr=STDOUT,
     )
@@ -255,6 +277,11 @@ def version():
 
 @main.command(help="Login to a CAASCAD_ZONE and change kubectl context")
 @click.option(
+    "--command",
+    "-c",
+    is_flag=True
+)
+@click.option(
     "--export",
     "-e",
     envvar="RSWITCH_EXPORT",
@@ -265,18 +292,19 @@ def version():
     "--verbose", "-v", envvar="RSWITCH_VERBOSE", is_flag=True, help="Debug mode"
 )
 @click.argument("zone_name")
-def login(zone_name, export, verbose):
+def login(zone_name, export, verbose, command):
     if verbose:
         os.environ["RSWITCH_VERBOSE"] = "1"
     if export:
         os.environ["RSWITCH_EXPORT"] = "1"
+    if command:
+        os.environ["RSWITCH_SILENCE"] = "1"
 
     setup()
     cloud_zone = get_cloud_zone(zone_name)
-    generate_kubeconfig(zone_name, cloud_zone)
+    generate_kubeconfig(zone_name, cloud_zone, output=command)
     if export:
         print(f"export KUBECONFIG={KUBECONFIG_DIR}/config")
-
 
 if __name__ == "__main__":
     main()
