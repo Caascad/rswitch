@@ -7,7 +7,7 @@ with pkgs.lib;
 with python3Packages;
 buildPythonApplication rec {
     pname = "rswitch";
-    version = "1.1.0";
+    version = "1.2.0";
     unpackPhase = ":";
     phases= ["installPhase" "fixupPhase"];
     propagatedBuildInputs = [

@@ -18,7 +18,8 @@ CONFIG_DIR = f"{os.getenv('HOME')}/.config/rswitch"
 CAASCAD_ZONES_FILE = f"{CONFIG_DIR}/zones.json"
 COOKIES_FILE = f"{CONFIG_DIR}/cookies.pkl"
 KUBECONFIG_DIR = f"/run/user/{str(os.getuid())}/rswitch/{str(os.getppid())}/.kube"
-TOKEN_TTL = 3600 * 24 * 7
+TOKEN_TTL = 3600 * 24 * 7 # 1 week
+ZONES_TTL = 60 * 30 # 30min
 
 
 def setup():
@@ -78,12 +79,12 @@ def get_session_token(zone_name):
     return token
 
 
-def generate_kubeconfig(zone, cloud_zone, output):
-    token = get_saved_token(cloud_zone)
+def generate_kubeconfig(zone, cloud_zone, output, cache):
+    log("Getting kubernetes token...")
+    if cache:
+        token = get_saved_token(cloud_zone)
 
-    if token:
-        log("Reusing cached token")
-    else:
+    if not cache or not token:
         session_token = get_session_token(cloud_zone)
         debug("Requesting Rancher's token")
         endpoint = f"https://rancher.{cloud_zone}.caascad.com/v3/token"
@@ -106,10 +107,8 @@ def generate_kubeconfig(zone, cloud_zone, output):
             sys.exit(1)
         token = res["token"]
         save_token(cloud_zone, token, (res["createdTS"] + res["ttl"]) / 1000)
-
-    cluster_id = get_cluster_id(
-        cloud_zone, token, "local" if cloud_zone == zone else "caascad-" + zone
-    )
+    else:
+        debug("Reusing cached token")
     if output:
         stdout = {
             "apiVersion": "client.authentication.k8s.io/v1alpha1",
@@ -120,6 +119,9 @@ def generate_kubeconfig(zone, cloud_zone, output):
         }
         print(json.dumps(stdout))
     else:
+        cluster_id = get_cluster_id(
+            cloud_zone, token, "local" if cloud_zone == zone else "caascad-" + zone
+        )
         log("Creating Kubernetes configuration file")
         create_config_file(
             url=f"https://rancher.{cloud_zone}.caascad.com/k8s/clusters/{cluster_id}",
@@ -149,7 +151,7 @@ def save_token(zone, token, expires_at):
 
 
 def get_saved_token(zone):
-    log("Searching for a cached token...")
+    debug("Searching for a cached token...")
     if not os.path.isfile(f"{CONFIG_DIR}/.token"):
         debug("Token cache file not found")
         return None
@@ -214,9 +216,7 @@ def create_config_file(cluster, url, user, context="default", path=None):
         stdout=DEVNULL,
         stderr=STDOUT,
     )
-    debug(
-        f'Set default context in configuration file {path if path else "~/.kube/config"}'
-    )
+    debug(f'Set default context in configuration file {path if path else "~/.kube/config"}')
     call(
         ["kubectl", "config"]
         + (["--kubeconfig", path] if path else [])
@@ -226,13 +226,48 @@ def create_config_file(cluster, url, user, context="default", path=None):
     )
 
 
-def get_cloud_zone(zone):
+def get_zones(cache):
+    log("Getting zones list...")
+    if cache:
+        zone_list = get_saved_zone_list()
+        if zone_list:
+            return zone_list
+    debug("Requesting zone list from remote server...")
+    zone_list = requests.get(CAASCAD_ZONES_URL).json()
+    save_zone_list(zone_list)
+    return zone_list
+    
+
+def save_zone_list(zone_list):
+    debug("Save zone list in cache")
+    data = zone_list
+    with open(f"{CONFIG_DIR}/.zones", "w") as output_file:
+        json.dump(data, output_file)
+
+
+def get_saved_zone_list():
+    debug("Searching for a cached zones list...")
+    if not os.path.isfile(f"{CONFIG_DIR}/.zones"):
+        debug("Zones cache file not found")
+        return None
+    if os.path.getmtime(f"{CONFIG_DIR}/.zones") + ZONES_TTL < time():
+        debug("Zones cache file expired")
+        return None
+    with open(f"{CONFIG_DIR}/.zones") as file:
+        try:
+            data = json.load(file)
+            debug("Using cached zone list")
+            return data
+        except:
+            return None
+
+
+def get_cloud_zone(zone, zone_list):
     debug("Searching for cluster in caascad-zones")
-    res = requests.get(CAASCAD_ZONES_URL).json()
-    if not zone in res.keys():
+    if not zone in zone_list.keys():
         error("Zone not found")
         sys.exit(1)
-    return res[zone]["parent_zone_name"] if res[zone]["type"] == "client" else zone
+    return zone_list[zone]["parent_zone_name"] if zone_list[zone]["type"] == "client" else zone
 
 
 def get_cluster_id(zone_name, token, cluster_name):
@@ -282,6 +317,11 @@ def version():
     is_flag=True
 )
 @click.option(
+    "--no-cache",
+    is_flag=True,
+    help="Disable cache",
+)
+@click.option(
     "--export",
     "-e",
     envvar="RSWITCH_EXPORT",
@@ -292,7 +332,7 @@ def version():
     "--verbose", "-v", envvar="RSWITCH_VERBOSE", is_flag=True, help="Debug mode"
 )
 @click.argument("zone_name")
-def login(zone_name, export, verbose, command):
+def login(zone_name, export, verbose, no_cache, command):
     if verbose:
         os.environ["RSWITCH_VERBOSE"] = "1"
     if export:
@@ -300,9 +340,12 @@ def login(zone_name, export, verbose, command):
     if command:
         os.environ["RSWITCH_SILENCE"] = "1"
 
+    cache = False if no_cache else True
+
     setup()
-    cloud_zone = get_cloud_zone(zone_name)
-    generate_kubeconfig(zone_name, cloud_zone, output=command)
+    zone_list = get_zones(cache)
+    cloud_zone = get_cloud_zone(zone_name, zone_list)
+    generate_kubeconfig(zone_name, cloud_zone, output=command, cache=cache)
     if export:
         print(f"export KUBECONFIG={KUBECONFIG_DIR}/config")
 
