@@ -12,7 +12,7 @@ import requests
 from selenium import webdriver
 
 CAASCAD_ZONES_URL = (
-    "https://git.corp.cloudwatt.com/caascad/caascad-zones/raw/master/zones.json"
+    "https://git.corp.caascad.com/caascad/caascad-zones/raw/master/zones.json"
 )
 CONFIG_DIR = f"{os.getenv('HOME')}/.config/rswitch"
 CAASCAD_ZONES_FILE = f"{CONFIG_DIR}/zones.json"
