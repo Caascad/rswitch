@@ -111,7 +111,7 @@ def generate_kubeconfig(zone, cloud_zone, output, cache):
         debug("Reusing cached token")
     if output:
         stdout = {
-            "apiVersion": "client.authentication.k8s.io/v1alpha1",
+            "apiVersion": "client.authentication.k8s.io/v1beta1",
             "kind": "ExecCredential",
             "status": {
                 "token": token
@@ -186,7 +186,7 @@ def create_config_file(cluster, url, user, context="default", path=None):
             "set-credentials",
             "rswitch-" + user,
             "--exec-api-version",
-            "client.authentication.k8s.io/v1alpha1",
+            "client.authentication.k8s.io/v1beta1",
             "--exec-command",
             "rswitch",
             "--exec-arg",
