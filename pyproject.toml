@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "rswitch"
+version = "1.2.2"
+description = ""
+authors = ["Xavier Maillard <xavier.maillard@orange.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+"backports.entry-points-selectable" = "^1.1.1"
+certifi = "2022.6.15.2"
+chardet = "3.0.4"
+click = "7.1"
+distlib = "^0.3.6"
+filelock = "^3.8.0"
+idna = "2.5"
+platformdirs = "^2.5.2"
+requests = "2.18.0"
+selenium = "3.141.0"
+six = "^1.16.0"
+urllib3 = "1.21.1"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+rswitch = "rswitch:main"

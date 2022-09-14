@@ -4,40 +4,27 @@ pkgs ? import <nixpkgs> {}
 
 with pkgs;
 with pkgs.lib;
-with python3Packages;
-buildPythonApplication rec {
-    pname = "rswitch";
-    version = "1.2.2";
-    unpackPhase = ":";
-    phases= ["installPhase" "fixupPhase"];
-    propagatedBuildInputs = [
-      (if stdenv.hostPlatform.isDarwin
-        then
-	  ""
-        else
-          firefox-unwrapped
-      )
-      geckodriver
-      (python3.withPackages (pythonPackages: with pythonPackages; [ 
-        requests
-        selenium
-        click
-      ]))
-    ]; 
-    src=".";
-    buildInputs = [
-      makeWrapper
-    ];
-    installPhase = ''
-      mkdir -p $out/bin 
-      install -m755 -D ${./rswitch.py} $out/bin/rswitch
-      substituteInPlace $out/bin/rswitch --replace RSWITCH_VERSION ${version}
-    '';
-    meta = with pkgs.lib; { 
-    description = "rswitch"; 
-    homepage = "https://github.com/Caascad/rswitch"; 
-    license = licenses.mit; 
-    maintainers = with maintainers; [ "karim-oueslati" ]; 
-  }; 
+with python39Packages;
+poetry2nix.mkPoetryApplication rec {
+  projectDir = ./.;
+  python = pkgs.python39;
 
-  }
+  propagatedBuildInputs = [
+    (if stdenv.hostPlatform.isDarwin
+      then
+    ""
+      else
+        firefox-unwrapped
+    )
+    geckodriver
+  ];
+  meta = with pkgs.lib; {
+    description = "rswitch";
+    homepage = "https://github.com/Caascad/rswitch";
+    license = licenses.mit;
+    maintainers = with maintainers; [ "abryko" ];
+  };
+}
+
+
+

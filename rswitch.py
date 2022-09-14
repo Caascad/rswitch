@@ -6,6 +6,7 @@ from subprocess import DEVNULL, STDOUT, call
 import sys
 import uuid
 import json
+import pkg_resources
 
 import click
 import requests
@@ -307,7 +308,8 @@ def helm(query):
 
 @main.command(help="Current rswitch version")
 def version():
-    print("RSWITCH_VERSION")
+    version = pkg_resources.get_distribution('rswitch').version
+    print(version)
 
 
 @main.command(help="Login to a CAASCAD_ZONE and change kubectl context")
