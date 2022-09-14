@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rswitch"
-version = "1.2.2"
+version = "1.2.3"
 description = ""
 authors = ["Xavier Maillard <xavier.maillard@orange.com>"]
 
