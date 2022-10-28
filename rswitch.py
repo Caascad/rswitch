@@ -64,7 +64,8 @@ def get_session_token(zone_name):
     log("Use your browser to login to Rancher...")
     driver = webdriver.Firefox(service_log_path=f"{CONFIG_DIR}/geckodriver_service.log")
     debug("Launching browser...")
-    driver.get(f"https://rancher.{zone_name}.caascad.com")
+    domain_name = zone_list[zone_name]["domain_name"]
+    driver.get(f"https://rancher.{zone_name}.{domain_name}")
     token = None
     while not token:
         sleep(2)
@@ -85,10 +86,11 @@ def generate_kubeconfig(zone, cloud_zone, output, cache):
     if cache:
         token = get_saved_token(cloud_zone)
 
+    cloud_zone_domain_name = zone_list[cloud_zone]["domain_name"]
     if not cache or not token:
         session_token = get_session_token(cloud_zone)
         debug("Requesting Rancher's token")
-        endpoint = f"https://rancher.{cloud_zone}.caascad.com/v3/token"
+        endpoint = f"https://rancher.{cloud_zone}.{cloud_zone_domain_name}/v3/token"
         headers = {
             "content-type": "application/json",
             "Authorization": f"Bearer {session_token}",
@@ -125,13 +127,13 @@ def generate_kubeconfig(zone, cloud_zone, output, cache):
         )
         log("Creating Kubernetes configuration file")
         create_config_file(
-            url=f"https://rancher.{cloud_zone}.caascad.com/k8s/clusters/{cluster_id}",
+            url=f"https://rancher.{cloud_zone}.{cloud_zone_domain_name}/k8s/clusters/{cluster_id}",
             cluster=zone,
             user=cloud_zone,
             context=zone,
         )
         create_config_file(
-            url=f"https://rancher.{cloud_zone}.caascad.com/k8s/clusters/{cluster_id}",
+            url=f"https://rancher.{cloud_zone}.{cloud_zone_domain_name}/k8s/clusters/{cluster_id}",
             cluster=zone,
             user=cloud_zone,
             context=zone,
@@ -273,7 +275,8 @@ def get_cloud_zone(zone, zone_list):
 
 def get_cluster_id(zone_name, token, cluster_name):
     debug("Searching cluster in Rancher")
-    endpoint = f"https://rancher.{zone_name}.caascad.com/v3/clusters?limit=-1&sort=name"
+    domain_name = zone_list[zone_name]["domain_name"]
+    endpoint = f"https://rancher.{zone_name}.{domain_name}/v3/clusters?limit=-1&sort=name"
     headers = {"content-type": "application/json", "Authorization": f"Bearer {token}"}
     res = requests.get(endpoint, headers=headers).json()
     for cluster in res["data"]:
