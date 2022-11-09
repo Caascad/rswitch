@@ -60,7 +60,7 @@ def error(*args, **kwargs):
     print("\x1B[31m--- [ERROR]", *args, "\x1B[0m", file=sys.stderr, **kwargs)
 
 
-def get_session_token(zone_name):
+def get_session_token(zone_list, zone_name):
     log("Use your browser to login to Rancher...")
     driver = webdriver.Firefox(service_log_path=f"{CONFIG_DIR}/geckodriver_service.log")
     debug("Launching browser...")
@@ -81,14 +81,14 @@ def get_session_token(zone_name):
     return token
 
 
-def generate_kubeconfig(zone, cloud_zone, output, cache):
+def generate_kubeconfig(zone_list, zone, cloud_zone, output, cache):
     log("Getting kubernetes token...")
     if cache:
         token = get_saved_token(cloud_zone)
 
     cloud_zone_domain_name = zone_list[cloud_zone]["domain_name"]
     if not cache or not token:
-        session_token = get_session_token(cloud_zone)
+        session_token = get_session_token(zone_list, cloud_zone)
         debug("Requesting Rancher's token")
         endpoint = f"https://rancher.{cloud_zone}.{cloud_zone_domain_name}/v3/token"
         headers = {
@@ -122,8 +122,8 @@ def generate_kubeconfig(zone, cloud_zone, output, cache):
         }
         print(json.dumps(stdout))
     else:
-        cluster_id = get_cluster_id(
-            cloud_zone, token, "local" if cloud_zone == zone else "caascad-" + zone
+        cluster_id = get_cluster_id(zone_list,cloud_zone, token,
+            "local" if cloud_zone == zone else "caascad-" + zone
         )
         log("Creating Kubernetes configuration file")
         create_config_file(
@@ -265,7 +265,7 @@ def get_saved_zone_list():
             return None
 
 
-def get_cloud_zone(zone, zone_list):
+def get_cloud_zone(zone_list, zone):
     debug("Searching for cluster in caascad-zones")
     if not zone in zone_list.keys():
         error("Zone not found")
@@ -273,7 +273,7 @@ def get_cloud_zone(zone, zone_list):
     return zone_list[zone]["parent_zone_name"] if zone_list[zone]["type"] == "client" else zone
 
 
-def get_cluster_id(zone_name, token, cluster_name):
+def get_cluster_id(zone_list, zone_name, token, cluster_name):
     debug("Searching cluster in Rancher")
     domain_name = zone_list[zone_name]["domain_name"]
     endpoint = f"https://rancher.{zone_name}.{domain_name}/v3/clusters?limit=-1&sort=name"
@@ -349,8 +349,8 @@ def login(zone_name, export, verbose, no_cache, command):
 
     setup()
     zone_list = get_zones(cache)
-    cloud_zone = get_cloud_zone(zone_name, zone_list)
-    generate_kubeconfig(zone_name, cloud_zone, output=command, cache=cache)
+    cloud_zone = get_cloud_zone(zone_list, zone_name)
+    generate_kubeconfig(zone_list, zone_name, cloud_zone, output=command, cache=cache)
     if export:
         print(f"export KUBECONFIG={KUBECONFIG_DIR}/config")
 
