@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 from time import sleep, time
 import os
@@ -144,12 +144,12 @@ def generate_kubeconfig(zone_list, zone, cloud_zone, output, cache):
 def save_token(zone, token, expires_at):
     debug("Save token in cache")
     try:
-        with open(f"{CONFIG_DIR}/.token") as input_file:
+        with open(f"{CONFIG_DIR}/.token", encoding='utf-8') as input_file:
             data = json.load(input_file)
     except:
         data = {}
     data[zone] = {"token": token, "expiresAt": expires_at}
-    with open(f"{CONFIG_DIR}/.token", "w") as output_file:
+    with open(f"{CONFIG_DIR}/.token", "w", encoding='utf-8') as output_file:
         json.dump(data, output_file)
 
 
@@ -158,7 +158,7 @@ def get_saved_token(zone):
     if not os.path.isfile(f"{CONFIG_DIR}/.token"):
         debug("Token cache file not found")
         return None
-    with open(f"{CONFIG_DIR}/.token") as file:
+    with open(f"{CONFIG_DIR}/.token", encoding='utf-8') as file:
         try:
             data = json.load(file)
             if not zone in data:
@@ -239,12 +239,12 @@ def get_zones(cache):
     zone_list = requests.get(CAASCAD_ZONES_URL).json()
     save_zone_list(zone_list)
     return zone_list
-    
+
 
 def save_zone_list(zone_list):
     debug("Save zone list in cache")
     data = zone_list
-    with open(f"{CONFIG_DIR}/.zones", "w") as output_file:
+    with open(f"{CONFIG_DIR}/.zones", "w", encoding='utf-8') as output_file:
         json.dump(data, output_file)
 
 
@@ -256,7 +256,7 @@ def get_saved_zone_list():
     if os.path.getmtime(f"{CONFIG_DIR}/.zones") + ZONES_TTL < time():
         debug("Zones cache file expired")
         return None
-    with open(f"{CONFIG_DIR}/.zones") as file:
+    with open(f"{CONFIG_DIR}/.zones", encoding='utf-8') as file:
         try:
             data = json.load(file)
             debug("Using cached zone list")
