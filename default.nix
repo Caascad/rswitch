@@ -1,15 +1,15 @@
 {
-pkgs ? import <nixpkgs> {} 
-}: 
+pkgs ? import <nixpkgs> {}
+}:
 
 with pkgs;
 with pkgs.lib;
 with python39Packages;
-let 
+let
   rswitch = poetry2nix.mkPoetryApplication rec {
     projectDir = ./.;
     python = pkgs.python39;
-  
+
     propagatedBuildInputs = [
       (if stdenv.hostPlatform.isDarwin
         then
