@@ -13,7 +13,7 @@ import requests
 from selenium import webdriver
 
 
-CAASCAD_ZONES_URL = os.getenv('CAASCAD_ZONES_URL', "https://git.corp.caascad.com/terraform/envs-ng/raw/gen/zones_static/zones.json")
+CAASCAD_ZONES_URL = os.getenv('CAASCAD_ZONES_URL', "https://git.corp.caascad.com/caascad/terraform/envs-ng/raw/master/gen/zones_static/zones.json")
 
 CONFIG_DIR = f"{os.getenv('HOME')}/.config/rswitch"
 CAASCAD_ZONES_FILE = f"{CONFIG_DIR}/zones.json"
