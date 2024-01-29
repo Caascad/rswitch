@@ -1,15 +1,15 @@
 {
-pkgs ? import <nixpkgs> {}
+  pkgs ? import <nixpkgs> {}
+, poetry ? import( fetchTarball "https://github.com/nix-community/poetry2nix/archive/refs/tags/2024.1.1244871.tar.gz") {}
 }:
 
 with pkgs;
 with pkgs.lib;
 with python39Packages;
 let
-  rswitch = poetry2nix.mkPoetryApplication rec {
+  rswitch = poetry.mkPoetryApplication rec {
     projectDir = ./.;
     python = pkgs.python39;
-
     propagatedBuildInputs = [
       (if stdenv.hostPlatform.isDarwin
         then
