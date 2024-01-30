@@ -1,15 +1,16 @@
 {
-  pkgs ? import <nixpkgs> {}
-, poetry ? import( fetchTarball "https://github.com/nix-community/poetry2nix/archive/refs/tags/2024.1.1244871.tar.gz") {}
+  sources ? import ./nix/sources.nix
+# breaks
+#,  pkgs ? import sources.nixpkgs {};
+, pkgs ? import <nixpkgs> {}
+, poetry ? import sources.poetry2nix {}
 }:
 
-with pkgs;
-with pkgs.lib;
-with python39Packages;
+with pkgs; with lib;
 let
   rswitch = poetry.mkPoetryApplication rec {
     projectDir = ./.;
-    python = pkgs.python39;
+    python = python39;
     propagatedBuildInputs = [
       (if stdenv.hostPlatform.isDarwin
         then
@@ -19,11 +20,11 @@ let
       )
       geckodriver
     ];
-    meta = with pkgs.lib; {
+    meta = {
       description = "rswitch";
       homepage = "https://github.com/Caascad/rswitch";
       license = licenses.mit;
-      maintainers = with maintainers; [ "abryko" ];
+      maintainers = [ "abryko" ];
     };
   };
 in rswitch.overrideAttrs (old: rec {
