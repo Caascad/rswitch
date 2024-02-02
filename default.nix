@@ -3,12 +3,12 @@
 # breaks
 #,  pkgs ? import sources.nixpkgs {};
 , pkgs ? import <nixpkgs> {}
-, poetry ? import sources.poetry2nix {}
+, poetry2nix ? import sources.poetry2nix {}
 }:
 
 with pkgs; with lib;
 let
-  rswitch = poetry.mkPoetryApplication rec {
+  rswitch = poetry2nix.mkPoetryApplication rec {
     projectDir = ./.;
     python = python39;
     propagatedBuildInputs = [
