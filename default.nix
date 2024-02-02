@@ -1,8 +1,6 @@
 {
   sources ? import ./nix/sources.nix
-# breaks
-#,  pkgs ? import sources.nixpkgs {};
-, pkgs ? import <nixpkgs> {}
+, pkgs ? import sources.nixpkgs {}
 , poetry2nixStandalone ? import sources.poetry2nix {}
 }:
 
