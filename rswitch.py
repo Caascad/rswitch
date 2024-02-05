@@ -6,7 +6,7 @@ from subprocess import DEVNULL, STDOUT, call
 import sys
 import uuid
 import json
-import pkg_resources
+from importlib.metadata import version as vers
 
 import click
 import requests
@@ -311,7 +311,7 @@ def helm(query):
 
 @main.command(help="Current rswitch version")
 def version():
-    version = pkg_resources.get_distribution('rswitch').version
+    version = vers(rswitch)
     print(version)
 
 
